@@ -1,13 +1,16 @@
 import { Connection, Keypair, PublicKey, VersionedTransaction } from "@solana/web3.js"
+import base58 from "bs58"
 import { SearcherClient, searcherClient } from "jito-ts/dist/sdk/block-engine/searcher"
 import { Bundle } from "jito-ts/dist/sdk/block-engine/types"
 import { isError } from "jito-ts/dist/sdk/block-engine/utils"
 import { retrieveEnvVariable } from "./utils"
 
 const rpc = retrieveEnvVariable('RPC_URL')
+const blockengingUrl = retrieveEnvVariable('BLOCKENGINE')
 const jitoFee = Number(retrieveEnvVariable('JITO_FEE'))
-const solanaConnection = new Connection(rpc)
+const jitoKeyStr = retrieveEnvVariable('JITO_KEY_STR')
 
+const solanaConnection = new Connection(rpc)
 export async function bundle(txs: VersionedTransaction[], keypair: Keypair) {
   try {
     const txNum = Math.ceil(txs.length / 3)
@@ -29,8 +32,24 @@ export async function bundle(txs: VersionedTransaction[], keypair: Keypair) {
   }
 }
 
-function bull_dozer(txs: VersionedTransaction[], keypair: Keypair) {
+export async function bull_dozer(txs: VersionedTransaction[], keypair: Keypair) {
+  try {
+    const bundleTransactionLimit = parseInt('5')
+    const jitoKey = Keypair.fromSecretKey(base58.decode(jitoKeyStr))
+    const search = searcherClient(blockengingUrl, jitoKey)
 
+    await build_bundle(
+      search,
+      bundleTransactionLimit,
+      txs,
+      keypair
+    )
+    const bundle_result = await onBundleResult(search)
+    return bundle_result
+  } catch (error) {
+    console.log("bull_dozer error: ", error)
+    return 0
+  }
 }
 
 async function build_bundle(
@@ -100,3 +119,9 @@ export const onBundleResult = (c: SearcherClient): Promise<number> => {
     )
   })
 }
+
+
+
+// export const bundle = async (a: any, b: any) => {
+//   console.log("object")
+// }
