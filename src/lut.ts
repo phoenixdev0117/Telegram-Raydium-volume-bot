@@ -29,4 +29,36 @@ import {
       this.addressesForLookupTable = new Map(); 
     }
 
+    private processLookupTableUpdate(
+        lutAddress: PublicKey,
+        data: AccountInfo<Buffer>,
+      ) {
+        const lutAccount = new AddressLookupTableAccount({
+          key: lutAddress,
+          state: AddressLookupTableAccount.deserialize(data.data),
+        });
+    
+        this.updateCache(lutAddress, lutAccount);
+        return;
+      }
+    
+      async getLookupTable(
+        lutAddress: PublicKey,
+      ): Promise<AddressLookupTableAccount | undefined | null> {
+        const lutAddressStr = lutAddress.toBase58();
+        if (this.lookupTables.has(lutAddressStr)) {
+          return this.lookupTables.get(lutAddressStr);
+        }
+    
+        const lut = await connection.getAddressLookupTable(lutAddress);
+        if (lut.value === null) {
+          return null;
+        }
+    
+        this.updateCache(lutAddress, lut.value);
+    
+        return lut.value;
+      }
+    
+
   }
