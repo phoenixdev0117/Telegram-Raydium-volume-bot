@@ -62,3 +62,41 @@ async function build_bundle(
   } catch (e) {}
   return maybeBundle
 }
+
+export const onBundleResult = (c: SearcherClient): Promise<number> => {
+  let first = 0
+  let isResolved = false
+
+  return new Promise((resolve) => {
+    // Set a timeout to reject the promise if no bundle is accepted within 5 seconds
+    setTimeout(() => {
+      resolve(first)
+      isResolved = true
+    }, 10000)
+
+    c.onBundleResult(
+      (result: any) => {
+        if (isResolved) return first
+        // clearTimeout(timeout) // Clear the timeout if a bundle is accepted
+        const isAccepted = result.accepted
+        const isRejected = result.rejected
+        if (isResolved == false) {
+
+          if (isAccepted) {
+            console.log(`bundle accepted, ID: ${result.bundleId}  | Slot: ${result.accepted!.slot}`)
+            first += 1
+            isResolved = true
+            resolve(first) // Resolve with 'first' when a bundle is accepted
+          }
+          if (isRejected) {
+            // Do not resolve or reject the promise here
+            console.log("Bundle is not accepted")
+          }
+        }
+      },
+      (e: any) => {
+        // Do not reject the promise here
+      }
+    )
+  })
+}
